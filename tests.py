@@ -1,5 +1,5 @@
 from tag_cap import *
 
-t = TagCap("https://github.com/JackCSheehan/tag-cap")
+t = TagCap("https://www.acmutd.co/")
 
-t.get("a", {"id" : "user-content-tag-cap"})
+t.get("a", {"href" : "https://facebook.com/acmatutd", "class" : "text-link"})

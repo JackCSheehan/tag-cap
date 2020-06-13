@@ -2,35 +2,98 @@
 import re
 import urllib.request
 
-REGEX_TEMPLATE = "<%s\s+.*%s.*>.*<\/%s>?"    # Regex template for searching through a page source
+# Regex search strings and search string templates
+TAG_REGEX_TEMPLATE = "<%s\\s+.*%s.*>"                               # Regex template for searching for opening tag
+ATTRIBUTE_REGEX_TEMPLATE = "(?:%s\\s*=\\s*\\\"%s\\\"\\s*)"          # Regex template for finding individual attributes\
+GET_ATTRIBUTES_REGEX_SEARCH = "\\w+=\\\"[a-zA-Z0-9-:.()_ ]*\\\""    # Regex search string for collecting attributes from found tags
+TAG_NAME_REGEX_SEARCH = "<((?:/|)[a-zA-Z0-9-._]+).*>"               # Regex search string for finding the names of tags   
+SPECIFIC_TAG_REGEX_TEMPLATE = "(<%s.*?>|</%s>)"                     # Regex template for finding opening and closing tags of a specific name
+TEXT_SEARCH = "(?<=>).*?(?=<)"                                      # Regex search string to get the text inside an element
 
 # Class that has all of the web scraping functionality
 class TagCap:
     # Takes a URL to the webpage that the user wants to scrape and gets its source
     def __init__(self, url):
         self.url = url
-        self.source = urllib.request.urlopen(url).read()
-        
+
+        # Fetch source from given URL
+        request = urllib.request.urlopen(url)
+        self.source = request.read().decode("utf8")
+        request.close()
+
     # This function finds the given tag name in the page source with the given attributes.
     # Tag name is expected to be a string while attributes is expected to be a dict of
-    # signature str : str.
+    # signature str : str. Returns a list of element objects.
     def get(self, tagName, attributes):
-        attributesRegex = ""    # Regex string to search for given attributes
+        elements = []           # List of element objects read from source
+        attributesRegex = ""    # Regex string to search for attributes
 
         # Iterate through attributes dict to build regex
         for count, key in enumerate(attributes):
             # Create the regex to search for the current attribute
-            currentAttributeRegex = "(%s\\s*=\\s*\\\"%s\\\"\\s*)" % (key, attributes[key])
+            currentAttributeRegex = ATTRIBUTE_REGEX_TEMPLATE % (key, attributes[key])
 
-            # Append the generate regex to the attributes regex string
             attributesRegex += currentAttributeRegex
 
-            # If this is not the last attribute, add a \s* in between so that whitespace between attributes is till found
+            # If this is not the last attribute, add a \s* in between so that white space between attributes is still matched
             if count != len(attributes) - 1:
                 attributesRegex += "\\s*"
 
-        # Use regex tememplate and attributes regex to form regex search string
-        regexSearchString = REGEX_TEMPLATE % (tagName, attributesRegex, tagName)
+        # Create the regex to find open tags that match the given tag name and attributes
+        openTagSearch = TAG_REGEX_TEMPLATE % (tagName, attributesRegex)
 
-        # Search page source using generated regex search string
-        searchResults = re.search(regexSearchString, str(self.source), re.DOTALL)
+        # Find opening tags and iterate through each one to process it
+        for tag in re.finditer(openTagSearch, self.source):
+            # Capture attributes from found tag
+            capturedAttributes = re.findall(GET_ATTRIBUTES_REGEX_SEARCH, tag.group())
+
+            # Turn captured attributes into dict for easy access
+            attributesDict = {}
+            for attribute in capturedAttributes:
+                # Remove any quotes in the attributes
+                attribute = attribute.replace("\"", "")
+
+                # Split current attribute at = and use the result to form the dict
+                splitAttribute = attribute.split("=")
+                attributesDict[splitAttribute[0]] = splitAttribute[1]
+
+            # Capture the inner HTML of the element by first getting the rest of the document after the current tag
+            remainingDocument = self.source[tag.start():]
+
+            # Create regex search string for finding opening and closing tags with a specific name
+            specificTagSearch = SPECIFIC_TAG_REGEX_TEMPLATE % (tagName, tagName)
+
+            # Keep track of the opening and closing tags
+            openingTagCount = 0
+            closingTagCount = 0
+
+            # Keep track of starting and ending index of closing tag in source
+            startOfClosingTag = 0
+            endOfClosingTag = 0
+
+            # Find each tag with the same name and iterate through them to find when the tags balance
+            for sameNameTag in re.finditer(specificTagSearch, remainingDocument):
+                # If the current tag is an opening tag, increment opening tag count
+                if sameNameTag.group().startswith("<" + tagName):
+                    openingTagCount += 1
+                # If the current tag is a closing tag, increment closing tag count
+                else:
+                    closingTagCount += 1
+
+                # If opening and closing tags are balanced, the closing tag of the current tag has been found
+                if (openingTagCount == closingTagCount) and openingTagCount != 0:
+                    # Get the start and end index of the same name tag
+                    startOfClosingTag = tag.start() + sameNameTag.start()
+                    endOfClosingTag = tag.start() + sameNameTag.end()
+                    break
+                
+            # Get the captured HTML (HTML inside tags AND the tags themselves)
+            capturedHTML = self.source[tag.start() : endOfClosingTag]
+
+            # Get the captured inner HTML (HTML inside tags ONLY)
+            capturedInnerHTML = self.source[tag.end() : startOfClosingTag]
+
+            # Get the text inside the current element
+            capturedText = re.findall(TEXT_SEARCH, capturedHTML)
+
+            # Remove any blank strings from captured strings list
