@@ -4,10 +4,10 @@ import urllib.request
 
 # Regex search strings and search string templates
 TAG_REGEX_TEMPLATE = "<%s\\s+.*%s.*>"                               # Regex template for searching for opening tag
-ATTRIBUTE_REGEX_TEMPLATE = "(?=.*%s\\s*=\\s*\\\"%s\\\"\\s*)"          # Regex template for finding individual attributes\
+ATTRIBUTE_REGEX_TEMPLATE = "(?=.*%s\\s*=\\s*\\\"%s\\\"\\s*)"        # Regex template for finding individual attributes\
 GET_ATTRIBUTES_REGEX_SEARCH = "\\w+=\\\"[a-zA-Z0-9-:.()_ ]*\\\""    # Regex search string for collecting attributes from found tags
 TAG_NAME_REGEX_SEARCH = "<((?:/|)[a-zA-Z0-9-._]+).*>"               # Regex search string for finding the names of tags   
-SPECIFIC_TAG_REGEX_TEMPLATE = "(<%s.*?>|</%s>)"                     # Regex template for finding opening and closing tags of a specific name
+SPECIFIC_TAG_REGEX_TEMPLATE = "(<%s.*?>|</\\s*%s>)"                 # Regex template for finding opening and closing tags of a specific name
 TEXT_SEARCH = "(?<=>).*?(?=<)"                                      # Regex search string to get the text inside an element
 
 # Class that has all of the web scraping functionality
@@ -93,8 +93,15 @@ class TagCap:
             # Get the captured inner HTML (HTML inside tags ONLY)
             capturedInnerHTML = self.source[tag.end() : startOfClosingTag]
 
-            # Get the text inside the current element
-            capturedText = re.findall(TEXT_SEARCH, capturedHTML)
-            print(capturedText)
+            # Get the text inside the current element and cleanse the captured text
+            capturedText = []
+            for text in re.finditer(">.*?<", capturedInnerHTML, re.MULTILINE):
 
-            # Remove any blank strings from captured strings list
+                # If the current group is only brackets, it shouldn't be added to the captured text
+                if text.group() == "><":
+                    continue
+
+                # Remove brackets from text
+                capturedText.append(text.group().replace(">", "").replace("<", ""))    
+
+
