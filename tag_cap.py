@@ -8,7 +8,7 @@ from element import *
 # Regex search strings and search string templates
 TAG_REGEX_TEMPLATE = "<%s\\s+.*%s.*?>"                              # Regex template for searching for opening tag
 ATTRIBUTE_REGEX_TEMPLATE = "(?=.*%s\\s*=\\s*\\\"%s\\\")"        # Regex template for finding individual attributes\
-GET_ATTRIBUTES_REGEX_SEARCH = "\\w+=\\\"[a-zA-Z0-9-:.()_ ]*\\\""    # Regex search string for collecting attributes from found tags
+GET_ATTRIBUTES_REGEX_SEARCH = "[a-zA-z0-9-]+=\\\"[a-zA-Z0-9-:.()_ ]*\\\""    # Regex search string for collecting attributes from found tags
 TAG_NAME_REGEX_SEARCH = "<((?:/|)[a-zA-Z0-9-._]+).*>"               # Regex search string for finding the names of tags   
 SPECIFIC_TAG_REGEX_TEMPLATE = "(<%s.*?>|</\\s*%s>)"                 # Regex template for finding opening and closing tags of a specific name
 TEXT_SEARCH = "(?<=>).*?(?=<)"                                      # Regex search string to get the text inside an element

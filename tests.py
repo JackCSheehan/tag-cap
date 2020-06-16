@@ -4,7 +4,8 @@ t = TagCap("https://stackoverflow.com/questions/29751230/regex-pattern-catastrop
 
 answerCountElement = t.get("h2", {"class" : "mb0"})
 
-answerCount = answerCountElement[0].attributes
+answerCount = answerCountElement[0].attributes["data-answercount"]
 print(answerCount)
+
 
 
