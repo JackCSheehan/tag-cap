@@ -1,12 +1,10 @@
 from tag_cap import *
 
-t = TagCap("https://jackcsheehan.github.io/net-pad/index.html")
+t = TagCap("https://stackoverflow.com/questions/29751230/regex-pattern-catastrophic-backtracking")
 
-span = t.get("span", {"id" : "coding-options-dropdown"})
+answerCountElement = t.get("h2", {"class" : "mb0"})
 
-print(span.tagName)
-print(span.attributes)
-print(span.HTML)
-print(span.innerHTML)
-print(span.text)
-print(span.selfClosing)
+answerCount = answerCountElement[0].attributes
+print(answerCount)
+
+

@@ -1,11 +1,13 @@
 # useful RE: <h1\s+.*(class\s*=\s*\"headers\"\s*)\s*(id\s*=\s*\"Main Header\"\s*).*>.*<\/h1>
+# <span\s+.*(?=class\s*=\s*\"note\"\s*).*?>
+# <div\s+.*(?=.*class\s*=\s*\"mw-body-content\").*(?=.*id\s*=\s*\"siteNotice\").*?>
 import re
 import urllib.request
 from element import *
 
 # Regex search strings and search string templates
-TAG_REGEX_TEMPLATE = "<%s\\s+.*%s.*>"                               # Regex template for searching for opening tag
-ATTRIBUTE_REGEX_TEMPLATE = "(?=.*%s\\s*=\\s*\\\"%s\\\"\\s*)"        # Regex template for finding individual attributes\
+TAG_REGEX_TEMPLATE = "<%s\\s+.*%s.*?>"                              # Regex template for searching for opening tag
+ATTRIBUTE_REGEX_TEMPLATE = "(?=.*%s\\s*=\\s*\\\"%s\\\")"        # Regex template for finding individual attributes\
 GET_ATTRIBUTES_REGEX_SEARCH = "\\w+=\\\"[a-zA-Z0-9-:.()_ ]*\\\""    # Regex search string for collecting attributes from found tags
 TAG_NAME_REGEX_SEARCH = "<((?:/|)[a-zA-Z0-9-._]+).*>"               # Regex search string for finding the names of tags   
 SPECIFIC_TAG_REGEX_TEMPLATE = "(<%s.*?>|</\\s*%s>)"                 # Regex template for finding opening and closing tags of a specific name
@@ -36,9 +38,9 @@ class TagCap:
 
             attributesRegex += currentAttributeRegex
 
-            # If this is not the last attribute, add a \s* in between so that white space between attributes is still matched
+            # If this is not the last attribute, add a .* so that attributes in between target attributes don't interrupt search
             if count != len(attributes) - 1:
-                attributesRegex += "\\s*"
+                attributesRegex += ".*"
 
         # Create the regex to find open tags that match the given tag name and attributes
         openTagSearch = TAG_REGEX_TEMPLATE % (tagName, attributesRegex)
@@ -94,17 +96,28 @@ class TagCap:
             # Get the captured inner HTML (HTML inside tags ONLY)
             capturedInnerHTML = self.source[tag.end() : startOfClosingTag].strip()
 
-            # Get the text inside the current element and cleanse the captured text
-            capturedText = []
-            for text in re.finditer(">.*?<", capturedInnerHTML, re.MULTILINE):
+            # Get data from inner HTML that might be text
+            possibleText = re.findall(">.*?<", capturedInnerHTML, re.MULTILINE)
 
-                # If the current group is only brackets, it shouldn't be added to the captured text
-                if text.group() == "><":
-                    continue
+            # If no text found, innerHTML will be considered the text, since, in this case, the innerHTML IS the text
+            if len(possibleText) == 0:
+                capturedText = capturedInnerHTML
+            # If text is found with regex search, iterate through it
+            else:
+                # Get the text inside the current element and cleanse the captured text
+                capturedText = []
+                for text in possibleText:
 
-                # Remove brackets from text
-                capturedText.append(text.group().replace(">", "").replace("<", ""))
+                    # If the current text is only brackets, it shouldn't be added to the captured text
+                    if text == "><":
+                        continue
 
-        return Element(tagName, attributesDict, capturedHTML, capturedInnerHTML, capturedText, False)
+                    # Remove brackets from text
+                    capturedText.append(text.replace(">", "").replace("<", ""))
+
+            # Add current element to elements list
+            elements.append(Element(tagName, attributesDict, capturedHTML, capturedInnerHTML, capturedText, False))
+
+        return elements
 
 
