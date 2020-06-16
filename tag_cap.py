@@ -1,6 +1,7 @@
 # useful RE: <h1\s+.*(class\s*=\s*\"headers\"\s*)\s*(id\s*=\s*\"Main Header\"\s*).*>.*<\/h1>
 import re
 import urllib.request
+from element import *
 
 # Regex search strings and search string templates
 TAG_REGEX_TEMPLATE = "<%s\\s+.*%s.*>"                               # Regex template for searching for opening tag
@@ -88,10 +89,10 @@ class TagCap:
                     break
                 
             # Get the captured HTML (HTML inside tags AND the tags themselves)
-            capturedHTML = self.source[tag.start() : endOfClosingTag]
+            capturedHTML = self.source[tag.start() : endOfClosingTag].strip()
 
             # Get the captured inner HTML (HTML inside tags ONLY)
-            capturedInnerHTML = self.source[tag.end() : startOfClosingTag]
+            capturedInnerHTML = self.source[tag.end() : startOfClosingTag].strip()
 
             # Get the text inside the current element and cleanse the captured text
             capturedText = []
@@ -102,6 +103,8 @@ class TagCap:
                     continue
 
                 # Remove brackets from text
-                capturedText.append(text.group().replace(">", "").replace("<", ""))    
+                capturedText.append(text.group().replace(">", "").replace("<", ""))
+
+        return Element(tagName, attributesDict, capturedHTML, capturedInnerHTML, capturedText, False)
 
 
