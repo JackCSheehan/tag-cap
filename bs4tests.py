@@ -4,5 +4,5 @@ f = open("map.osm")
 
 soup = BeautifulSoup(f, "lxml")
 
-tag = soup.find("node", {"id" : "81742688"})
+tag = soup.find("node", {"visible" : "true", "id" : "81553135"})
 print(tag)
