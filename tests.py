@@ -1,11 +1,7 @@
 from tag_cap import *
 
-t = TagCap("https://stackoverflow.com/questions/29751230/regex-pattern-catastrophic-backtracking")
+t = TagCap("map.osm")
 
-answerCountElement = t.get("h2", {"class" : "mb0"})
-
-answerCount = answerCountElement[0].attributes["data-answercount"]
-print(answerCount)
 
 
 

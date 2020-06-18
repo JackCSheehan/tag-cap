@@ -3,6 +3,7 @@
 # <div\s+.*(?=.*class\s*=\s*\"mw-body-content\").*(?=.*id\s*=\s*\"siteNotice\").*?>
 import re
 import urllib.request
+from urllib.parse import urlparse
 from element import *
 
 # Regex search strings and search string templates
@@ -15,14 +16,21 @@ TEXT_SEARCH = "(?<=>).*?(?=<)"                                      # Regex sear
 
 # Class that has all of the web scraping functionality
 class TagCap:
-    # Takes a URL to the webpage that the user wants to scrape and gets its source
-    def __init__(self, url):
-        self.url = url
+    # Takes an HTML or XML source in the form of either a URL or a file path
+    def __init__(self, dataLocation):
+        self.dataLocation = dataLocation
 
-        # Fetch source from given URL
-        request = urllib.request.urlopen(url)
-        self.source = request.read().decode("utf8")
-        request.close()
+        # Differentiate URLs from local files using url.parse
+        if urlparse(dataLocation).netloc != "":
+            # Fetch source from given URL
+            request = urllib.request.urlopen(dataLocation)
+            self.source = request.read().decode("utf8")
+            request.close()
+        # If data location is a file, open the file and read its contents into self.source
+        else:
+            file = open(dataLocation, "r")
+            self.source = file.read()
+            file.close()
 
     # This function finds the given tag name in the page source with the given attributes.
     # Tag name is expected to be a string while attributes is expected to be a dict of
