@@ -1,18 +1,23 @@
 # useful RE: <h1\s+.*(class\s*=\s*\"headers\"\s*)\s*(id\s*=\s*\"Main Header\"\s*).*>.*<\/h1>
 # <span\s+.*(?=class\s*=\s*\"note\"\s*).*?>
 # <div\s+.*(?=.*class\s*=\s*\"mw-body-content\").*(?=.*id\s*=\s*\"siteNotice\").*?>
+# <[/]*node.*>
 import re
 import urllib.request
 from urllib.parse import urlparse
 from element import *
 
 # Regex search strings and search string templates
-TAG_REGEX_TEMPLATE = "<%s\\s+.*%s.*?>"                              # Regex template for searching for opening tag
-ATTRIBUTE_REGEX_TEMPLATE = "(%s\\s*=\\s*\\\"%s\\\")"        # Regex template for finding individual attributes\
-GET_ATTRIBUTES_REGEX_SEARCH = "[a-zA-z0-9-]+=\\\"[a-zA-Z0-9-:.()_ ]*\\\""    # Regex search string for collecting attributes from found tags
-TAG_NAME_REGEX_SEARCH = "<((?:/|)[a-zA-Z0-9-._]+).*>"               # Regex search string for finding the names of tags   
-SPECIFIC_TAG_REGEX_TEMPLATE = "(<%s.*?>|</\\s*%s>)"                 # Regex template for finding opening and closing tags of a specific name
-TEXT_SEARCH = "(?<=>).*?(?=<)"                                      # Regex search string to get the text inside an element
+TAG_WITH_ATTRIBUTES_REGEX_TEMPLATE = "<%s\\s+.*%s.*?>"                      # Regex template for searching for opening tag
+TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*>"                            # Regex templates for seraching for opening tags without attributes
+ATTRIBUTE_REGEX_TEMPLATE = "(%s\\s*=\\s*\\\"%s\\\")"                        # Regex template for finding individual attributes
+GET_ATTRIBUTES_REGEX_SEARCH = "[a-zA-z0-9-]+=\\\"[a-zA-Z0-9-:.()_ ]*\\\""   # Regex search string for collecting attributes from found tags 
+SPECIFIC_TAG_REGEX_TEMPLATE = "<[/]*%s.*>"                                  # Regex template for finding opening and closing tags of a specific name
+TEXT_SEARCH = ">(.*)<"                                                      # Regex search string to get the text inside an element
+
+# kwargs key names
+SELF_CLOSING_KWARG = "selfClosing"
+ATTRIBUTES_KWARG = "attributes"
 
 # Class that has all of the web scraping functionality
 class TagCap:
@@ -35,8 +40,20 @@ class TagCap:
     # This function finds the given tag name in the page source with the given attributes.
     # Tag name is expected to be a string while attributes is expected to be a dict of
     # signature str : str. Returns a list of element objects. Also takes a boolean indicating
-    # whether or not a tag is self closing.
-    def get(self, tagName, selfClosing, attributes):
+    # whether or not a tag is self closing. If not given selfClosing defaults to False and
+    # attributes defaults to an empty dict
+    def get(self, tagName, **kwargs):
+        # Default argument values
+        selfClosing = False
+        attributes = {}
+
+        # Check for user-given values for the optional parameters
+        if SELF_CLOSING_KWARG in kwargs:
+            selfClosing = kwargs[SELF_CLOSING_KWARG]
+        
+        if ATTRIBUTES_KWARG in kwargs:
+            attributes = kwargs[ATTRIBUTES_KWARG]
+
         elements = []           # List of element objects read from source
         attributesRegex = ""    # Regex string to search for attributes
 
@@ -51,8 +68,11 @@ class TagCap:
             if count != len(attributes) - 1:
                 attributesRegex += ".*"
 
-        # Create the regex to find open tags that match the given tag name and attributes
-        openTagSearch = TAG_REGEX_TEMPLATE % (tagName, attributesRegex)
+        # Create the regex to find open tags depending on whether or not attributes were given
+        if len(attributes) == 0:
+            openTagSearch = TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE % tagName
+        else:
+            openTagSearch = TAG_WITH_ATTRIBUTES_REGEX_TEMPLATE % (tagName, attributesRegex)
 
         # Find opening tags and iterate through each one to process it
         for tag in re.finditer(openTagSearch, self.source):
@@ -75,7 +95,7 @@ class TagCap:
                 remainingDocument = self.source[tag.start():]
 
                 # Create regex search string for finding opening and closing tags with a specific name
-                specificTagSearch = SPECIFIC_TAG_REGEX_TEMPLATE % (tagName, tagName)
+                specificTagSearch = SPECIFIC_TAG_REGEX_TEMPLATE % tagName
 
                 # Keep track of the opening and closing tags
                 openingTagCount = 0
@@ -108,11 +128,12 @@ class TagCap:
                 capturedInnerHTML = self.source[tag.end() : startOfClosingTag].strip()
 
                 # Get data from inner HTML that might be text
-                possibleText = re.findall(">.*?<", capturedInnerHTML, re.MULTILINE)
+                possibleText = re.finditer(TEXT_SEARCH, capturedInnerHTML, re.MULTILINE)
 
                 # If no text found, innerHTML will be considered the text, since, in this case, the innerHTML IS the text
-                if len(possibleText) == 0:
+                if sum(1 for _ in possibleText) == 0:
                     capturedText = capturedInnerHTML
+
                 # If text is found with regex search, iterate through it
                 else:
                     # Get the text inside the current element and cleanse the captured text
@@ -120,11 +141,11 @@ class TagCap:
                     for text in possibleText:
 
                         # If the current text is only brackets, it shouldn't be added to the captured text
-                        if text == "><":
+                        if text.group() == "><":
                             continue
 
                         # Remove brackets from text
-                        capturedText.append(text.replace(">", "").replace("<", ""))
+                        capturedText.append(text.group(1))
 
                 # Add current element to elements list
                 elements.append(Element(tagName, attributesDict, capturedHTML, capturedInnerHTML, capturedText, selfClosing))
@@ -134,5 +155,3 @@ class TagCap:
                 elements.append(Element(tagName, attributesDict, tag.group(), None, None, selfClosing))
 
         return elements
-
-

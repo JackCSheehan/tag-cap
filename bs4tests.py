@@ -4,5 +4,6 @@ f = open("map.osm")
 
 soup = BeautifulSoup(f, "lxml")
 
-tag = soup.find("node", {"visible" : "true", "id" : "81553135"})
-print(tag)
+
+n = soup.find("div", {"class" : "js-vote-count grid--cell fc-black-500 fs-title grid fd-column ai-center"})
+print(n.text)
