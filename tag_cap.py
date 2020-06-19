@@ -13,7 +13,7 @@ TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*>"                            # Re
 ATTRIBUTE_REGEX_TEMPLATE = "(%s\\s*=\\s*\\\"%s\\\")"                        # Regex template for finding individual attributes
 GET_ATTRIBUTES_REGEX_SEARCH = "[a-zA-z0-9-]+=\\\"[a-zA-Z0-9-:.()_ ]*\\\""   # Regex search string for collecting attributes from found tags 
 SPECIFIC_TAG_REGEX_TEMPLATE = "<[/]*%s.*>"                                  # Regex template for finding opening and closing tags of a specific name
-TEXT_SEARCH = ">(.*)<"                                                      # Regex search string to get the text inside an element
+TEXT_SEARCH = ">.*?<"                                                       # Regex search string to get the text inside an element
 
 # kwargs key names
 SELF_CLOSING_KWARG = "selfClosing"
@@ -66,7 +66,7 @@ class TagCap:
 
             # If this is not the last attribute, add a .* so that attributes in between target attributes don't interrupt search
             if count != len(attributes) - 1:
-                attributesRegex += ".*"
+                attributesRegex += ".*?"
 
         # Create the regex to find open tags depending on whether or not attributes were given
         if len(attributes) == 0:

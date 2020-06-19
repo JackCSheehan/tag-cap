@@ -1,7 +1,7 @@
 from tag_cap import *
 
-t = TagCap("https://en.wikipedia.org/wiki/Main_Page")
+t = TagCap("map.osm")
 
-featuredArticle = t.get("div", attributes = {"id" : "mp-welcome"})
+n = t.get("node", attributes = {"id" : "6597521361", "version" : "3", "changeset" : "79285199"})
 
-print(featuredArticle[0].text)
+print(n[0].text)
