@@ -1,7 +1,10 @@
-from tag_cap import *
 
+import time
+
+
+start = time.time()
+from tag_cap import *
 t = TagCap("map.osm")
 
-n = t.get("node", attributes = {"id" : "6597521361", "version" : "3", "changeset" : "79285199"})
-
-print(n[0].text)
+n = t.get("node", attributes = {"changeset" : "3346612", "id" : "81588599"})
+print("--- %s seconds ---" % (time.time() - start))
