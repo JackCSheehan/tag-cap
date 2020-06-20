@@ -11,7 +11,7 @@ from element import *
 TAG_WITH_ATTRIBUTES_REGEX_TEMPLATE = "<%s\\s+.*%s.*?>"                      # Regex template for searching for opening tag
 TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*>"                            # Regex templates for seraching for opening tags without attributes
 ATTRIBUTE_REGEX_TEMPLATE = "^(?=.*%s\\s*=\\s*\\\"%s\\\")"                        # Regex template for finding individual attributes
-GET_ATTRIBUTES_REGEX_SEARCH = "[a-zA-z0-9-]+=\\\"[a-zA-Z0-9-:.()_ ]*\\\""   # Regex search string for collecting attributes from found tags 
+GET_ATTRIBUTES_REGEX_SEARCH = "([a-zA-z0-9-]+\s*=\s*\"[a-zA-Z0-9-:.()_ ]*\")"   # Regex search string for collecting attributes from found tags 
 SPECIFIC_TAG_REGEX_TEMPLATE = "<[/]*%s.*>"                                  # Regex template for finding opening and closing tags of a specific name
 TEXT_SEARCH = ">.*?<"                                                       # Regex search string to get the text inside an element
 
@@ -55,10 +55,6 @@ class TagCap:
             attributes = kwargs[ATTRIBUTES_KWARG]
 
         elements = []           # List of element objects read from source
-
-        # Find all elements of the given tag name
-        tags = re.findall("<%s.*>" % tagName, self.source)
-
         attributesRegex = ""    # Regex string to search for attributes
 
         # Iterate through attributes dict to build regex
@@ -68,19 +64,132 @@ class TagCap:
 
             attributesRegex += currentAttributeRegex
 
-            # If this is not the last attribute, add a .*? so that attributes in between target attributes don't interrupt search
+            # If this is not the last attribute, add a .* so that attributes in between target attributes don't interrupt search
             if count != len(attributes) - 1:
-                attributesRegex += ".*?"
+                attributesRegex += ".*"
 
-        # Find same-named tags with the correct attributes
-        for tag in tags:
+        # Find all tags that have the same name as the given tag name
+        for tag in re.finditer(TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE % tagName, self.source):
 
-            # If the attributes search finds the correct attributes, then capture the rest of the data to put into an Element object
-            if len(re.findall(attributesRegex, tag)) >= 1:
-                print(tag)
+            # If the user gave no attributes, function doesn't have to search for specific attributes
+            if len(attributes) == 0:
+                capturedHTML = tag.group()
+
+            # If the user gave attributes, check for attributes
             else:
-                continue
-                
-            
 
+                # If the correct attributes are not found on this tag, skip the rest of the processing
+                if len(re.findall(attributesRegex, tag.group())) < 1:
+                    continue
+                    
+            # Turn captured attributes into dict for easy access
+            capturedAttributes = {}
+            for unparsedAttribute in re.findall(GET_ATTRIBUTES_REGEX_SEARCH, tag.group()):
+                
+                # Remove any quotes in the attributes
+                unparsedAttribute = unparsedAttribute.replace("\"", "")
+
+                # Split current attribute at = and use the result to form the dict
+                splitAttribute = unparsedAttribute.split("=")
+                capturedAttributes[splitAttribute[0]] = splitAttribute[1]
+
+            # If the user indicates that the tag isn't self-closing, find the closing tag
+            if selfClosing == False:
+
+                # Capture the inner HTML of the element by first getting the rest of the document after the current tag
+                remainingDocument = self.source[tag.start():]
+
+                # Create regex search string for finding opening and closing tags with a specific name
+                specificTagSearch = SPECIFIC_TAG_REGEX_TEMPLATE % tagName
+
+                # Keep track of the opening and closing tags
+                openingTagCount = 0
+                closingTagCount = 0
+
+                # Keep track of starting and ending index of closing tag in source
+                startOfClosingTag = 0
+                endOfClosingTag = 0
+
+                # Find each tag with the same name and iterate through them to find when the tags balance
+                for sameNameTag in re.finditer(specificTagSearch, remainingDocument):
+                    # If the current tag is an opening tag, increment opening tag count
+                    if sameNameTag.group().startswith("<" + tagName):
+                        openingTagCount += 1
+                    # If the current tag is a closing tag, increment closing tag count
+                    else:
+                        closingTagCount += 1
+
+                    # If opening and closing tags are balanced, the closing tag of the current tag has been found
+                    if (openingTagCount == closingTagCount) and openingTagCount != 0:
+                        # Get the start and end index of the same name tag
+                        startOfClosingTag = tag.start() + sameNameTag.start()
+                        endOfClosingTag = tag.start() + sameNameTag.end()
+                        break
+                    
+                # Get the captured HTML (HTML inside tags AND the tags themselves)
+                capturedHTML = self.source[tag.start() : endOfClosingTag].strip()
+
+                # Get the captured inner HTML (HTML inside tags ONLY)
+                capturedInnerHTML = self.source[tag.end() : startOfClosingTag].strip()
+                    
+                # Get data from inner HTML that might be text
+                possibleText = re.finditer(TEXT_SEARCH, capturedInnerHTML, re.MULTILINE)
+
+                # If no text found, innerHTML will be considered the text, since, in this case, the innerHTML IS the text
+                if sum(1 for _ in possibleText) == 0:
+                    capturedText = None
+
+                # If text is found with regex search, iterate through it
+                else:
+                    # Get the text inside the current element and cleanse the captured text
+                    capturedText = []
+                    for text in possibleText:
+
+                        # If the current text is only brackets, it shouldn't be added to the captured text
+                        if text.group() == "><":
+                            continue
+
+                        # Remove brackets from text
+                        capturedText.append(text.group(1))
+
+                # Add current element to elements list
+                elements.append(Element(tagName, capturedAttributes, capturedHTML, capturedInnerHTML, capturedText, selfClosing))
+            # If the tag is self closing, it will not have any inner HTML or inner text
+            else:
+                # Add current element to elements list
+                elements.append(Element(tagName, capturedAttributes, tag.group(), None, None, selfClosing))
+
+
+        '''
+        # If the user didn't request any attributes, simple get all tags of the given name
+        if len(attributes) == 0:
+            
+            return
+
+        else:
+            # Find same-named tags with the correct attributes
+            for tag in openingTags:
+    
+                # MAYBE TODO: MAKE  the below attributes regex actually like...capture the attributes so we dont have to do it again?
+                # If the attributes search finds the correct attributes, then capture the rest of the data to put into an Element object
+                if len(re.findall(attributesRegex, tag)) >= 1:
+                    
+                    # Turn captured attributes into dict for easy access
+                    capturedAttributes = {}
+                    for unparsedAttribute in re.findall(GET_ATTRIBUTES_REGEX_SEARCH, tag):
+                        # Remove any quotes in the attributes
+                        unparsedAttribute = unparsedAttribute.replace("\"", "")
+
+                        # Split current attribute at = and use the result to form the dict
+                        splitAttribute = unparsedAttribute.split("=")
+                        capturedAttributes[splitAttribute[0]] = splitAttribute[1]
+
+
+                
+                else:
+                    continue
+                '''
+
+
+        # Iterate through attributes dict to build regex
         return elements
