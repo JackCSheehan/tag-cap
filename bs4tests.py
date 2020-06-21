@@ -6,6 +6,5 @@ f = open("map.osm")
 soup = BeautifulSoup(f, "lxml")
 
 n = soup.find_all("node")
+print(len(n))
 print("--- %s seconds ---" % (time.time() - start))
-
-print(n[0])

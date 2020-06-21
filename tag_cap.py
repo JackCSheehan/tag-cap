@@ -8,19 +8,19 @@ from urllib.parse import urlparse
 from element import *
 
 # Regex search strings and search string templates
-TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*?>"                                # Regex templates for seraching for opening tags without attributes
-ATTRIBUTE_REGEX_TEMPLATE = "^(?=.*%s\\s*=\\s*\\\"%s\\\")"                       # Regex template for finding individual attributes
-GET_ATTRIBUTES_REGEX_SEARCH = "([a-zA-z0-9-]+\s*=\s*\"[a-zA-Z0-9-:.()_ ]*\")"   # Regex search string for collecting attributes from found tags 
-SPECIFIC_TAG_REGEX_TEMPLATE = "<[/]{0,1}%s.*?>"                                      # Regex template for finding opening and closing tags of a specific name
-TEXT_SEARCH = ">.*?<"                                                           # Regex search string to get the text inside an element
-SELF_CLOSING_TAG_SEARCH = "/\s*>"                                               # Regex search to check for self-closing slash in tag
+_TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*?>"                                # Regex templates for seraching for opening tags without attributes
+_ATTRIBUTE_REGEX_TEMPLATE = "^(?=.*%s\\s*=\\s*\\\"%s\\\")"                       # Regex template for finding individual attributes
+_GET_ATTRIBUTES_REGEX_SEARCH = "([a-zA-z0-9-]+\s*=\s*\"[a-zA-Z0-9-:.()_ ]*\")"   # Regex search string for collecting attributes from found tags 
+_SPECIFIC_TAG_REGEX_TEMPLATE = "<[/]{0,1}%s.*?>"                                      # Regex template for finding opening and closing tags of a specific name
+_TEXT_SEARCH = ">.*?<"                                                           # Regex search string to get the text inside an element
+_SELF_CLOSING_TAG_SEARCH = "/\s*>"                                               # Regex search to check for self-closing slash in tag
 
 # kwargs key names
-ATTRIBUTES_KWARG = "attributes"
-SOURCE_KWARG = "source"
+_ATTRIBUTES_KWARG = "attributes"
+_SOURCE_KWARG = "source"
 
 # HTML5 void tags (tags that self-close) given by the official w3 documentation. Ordered as best as possible most used -> least used for efficiency purposes
-HTML5_VOID_TAGS = ["meta", "img", "br", "input", "area", "base", "col", "command", "embed", "hr", "keygen", "link", "param", "source", "track", "wbr"]
+_HTML5_VOID_TAGS = ["meta", "img", "br", "input", "area", "base", "col", "command", "embed", "hr", "keygen", "link", "param", "source", "track", "wbr"]
 
 # Class that has all of the web scraping functionality
 class TagCap:
@@ -49,7 +49,7 @@ class TagCap:
         for count, key in enumerate(attributes):
 
             # Create the regex to search for the current attribute
-            currentAttributeRegex = ATTRIBUTE_REGEX_TEMPLATE % (key, attributes[key])
+            currentAttributeRegex = _ATTRIBUTE_REGEX_TEMPLATE % (key, attributes[key])
 
             attributesRegex += currentAttributeRegex
 
@@ -75,11 +75,11 @@ class TagCap:
         source = self.source
 
         # Check for user-given values for the optional parameters
-        if ATTRIBUTES_KWARG in kwargs:
-            attributes = kwargs[ATTRIBUTES_KWARG]
+        if _ATTRIBUTES_KWARG in kwargs:
+            attributes = kwargs[_ATTRIBUTES_KWARG]
 
-        if SOURCE_KWARG in kwargs:
-            source = kwargs[SOURCE_KWARG]
+        if _SOURCE_KWARG in kwargs:
+            source = kwargs[_SOURCE_KWARG]
 
         selfClosing = False     # Flag that indicates whether or not element is self closing
         elements = []           # List of element objects read from source
@@ -88,7 +88,7 @@ class TagCap:
         attributesRegex = self.__makeAttributesRegex(attributes)
 
         # Find all tags that have the same name as the given tag name
-        for tag in re.finditer(TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE % tagName, source):
+        for tag in re.finditer(_TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE % tagName, source):
 
             # If the user gave no attributes, function doesn't have to search for specific attributes
             if len(attributes) == 0:
@@ -103,7 +103,7 @@ class TagCap:
                     
             # Turn captured attributes into dict for easy access
             capturedAttributes = {}
-            for unparsedAttribute in re.findall(GET_ATTRIBUTES_REGEX_SEARCH, tag.group()):
+            for unparsedAttribute in re.findall(_GET_ATTRIBUTES_REGEX_SEARCH, tag.group()):
                 
                 # Remove any quotes in the attributes
                 unparsedAttribute = unparsedAttribute.replace("\"", "")
@@ -113,11 +113,11 @@ class TagCap:
                 capturedAttributes[splitAttribute[0]] = splitAttribute[1]
 
             # Check for slash to indicate if the current tag is self-closing
-            if re.findall(SELF_CLOSING_TAG_SEARCH, tag.group()):
+            if re.findall(_SELF_CLOSING_TAG_SEARCH, tag.group()):
                 selfClosing = True
 
             # Check to see if the given tag name is an HTML5 void tag
-            elif any(voidTag in tagName for voidTag in HTML5_VOID_TAGS):
+            elif any(voidTag in tagName for voidTag in _HTML5_VOID_TAGS):
                 selfClosing = True
 
             # If the user indicates that the tag isn't self-closing, find the closing tag
@@ -127,7 +127,7 @@ class TagCap:
                 remainingDocument = source[tag.start():]
 
                 # Create regex search string for finding opening and closing tags with a specific name
-                specificTagSearch = SPECIFIC_TAG_REGEX_TEMPLATE % tagName
+                specificTagSearch = _SPECIFIC_TAG_REGEX_TEMPLATE % tagName
 
                 # Keep track of the opening and closing tags
                 openingTagCount = 0
@@ -164,7 +164,7 @@ class TagCap:
                 capturedInnerHTML = source[tag.end() : startOfClosingTag].strip()
                     
                 # Get the text from the current tag
-                possibleText = re.finditer(TEXT_SEARCH, capturedInnerHTML)
+                possibleText = re.finditer(_TEXT_SEARCH, capturedInnerHTML)
 
                 # If no text found, innerHTML will be considered the text, since, in this case, the innerHTML IS the text
                 if sum(1 for _ in possibleText) == 0:
