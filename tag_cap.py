@@ -34,6 +34,7 @@ class TagCap:
             request = urllib.request.urlopen(dataLocation)
             self.source = request.read().decode("utf8")
             request.close()
+            
         # If data location is a file, open the file and read its contents into self.source
         else:
             file = open(dataLocation, "r")
@@ -98,7 +99,7 @@ class TagCap:
                 selfClosing = True
 
             # Check to see if the given tag name is an HTML5 void tag
-            if any(voidTag in tagName for voidTag in HTML5_VOID_TAGS):
+            elif any(voidTag in tagName for voidTag in HTML5_VOID_TAGS):
                 selfClosing = True
 
             # If the user indicates that the tag isn't self-closing, find the closing tag
