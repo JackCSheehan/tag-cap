@@ -41,7 +41,7 @@ class TagCap:
             self.source = file.read()
             file.close()
 
-    # Make the regular expression used for finding the attribues of a tag
+    # Make the regular expression used for finding the attributes of a tag
     def __makeAttributesRegex(self, attributes):
         attributesRegex = ""    # Regex string to search for attributes
 
@@ -59,97 +59,16 @@ class TagCap:
         
         return attributesRegex
 
-    # Make the captured attributes dictionary based on the attributes of the given tag. Returns the created
-    # dictionary.
-    def __makeCapturedAttributesDict(self, tag):
-        # Turn captured attributes into dict for easy access
-        capturedAttributes = {}
-        for unparsedAttribute in re.findall(GET_ATTRIBUTES_REGEX_SEARCH, tag.group()):
-            
-            # Remove any quotes in the attributes
-            unparsedAttribute = unparsedAttribute.replace("\"", "")
-
-            # Split current attribute at = and use the result to form the dict
-            splitAttribute = unparsedAttribute.split("=")
-            capturedAttributes[splitAttribute[0]] = splitAttribute[1]
-        
-        return capturedAttributes
-
-    # Gets the HTML and inner HTML of the given tag.
-    def __getHTMLData(self, source, tag, tagName):
-        # Capture the inner HTML of the element by first getting the rest of the document after the current tag
-        remainingDocument = source[tag.start():]
-
-        # Create regex search string for finding opening and closing tags with a specific name
-        specificTagSearch = SPECIFIC_TAG_REGEX_TEMPLATE % tagName
-
-        # Keep track of the opening and closing tags
-        openingTagCount = 0
-        closingTagCount = 0
-
-        # Keep track of starting and ending index of closing tag in source
-        startOfClosingTag = 0
-        endOfClosingTag = 0
-
-        #print(re.findall(specificTagSearch, remainingDocument))
-
-        # Find each tag with the same name and iterate through them to find when the tags balance
-        for sameNameTag in re.finditer(specificTagSearch, remainingDocument):
-
-            # If the current tag is an opening tag, increment opening tag count
-            if sameNameTag.group().startswith("<" + tagName):
-                openingTagCount += 1
-            # If the current tag is a closing tag, increment closing tag count
-            else:
-                closingTagCount += 1
-
-            # If opening and closing tags are balanced, the closing tag of the current tag has been found
-            if openingTagCount == closingTagCount and openingTagCount != 0:
- 
-                # Get the start and end index of the same name tag
-                startOfClosingTag = tag.start() + sameNameTag.start()
-                endOfClosingTag = tag.start() + sameNameTag.end()
-                break
-
-        #TODO: place catch here if both startOfClosingTag and endOfClosingTag are 0
-
-        # Get the captured HTML (HTML inside tags AND the tags themselves)
-        capturedHTML = source[tag.start() : endOfClosingTag].strip()
-
-        # Get the captured inner HTML (HTML inside tags ONLY)
-        capturedInnerHTML = source[tag.end() : startOfClosingTag].strip()
-
-        return capturedHTML, capturedInnerHTML
-
-    # Gets the text inside the current tag and returns it.
-    def __getText(self, capturedInnerHTML):
-        # Get data from inner HTML that might be text
-        possibleText = re.finditer(TEXT_SEARCH, capturedInnerHTML)
-
-        # If no text found, innerHTML will be considered the text, since, in this case, the innerHTML IS the text
-        if sum(1 for _ in possibleText) == 0:
-            capturedText = None
-
-        # If text is found with regex search, iterate through it
-        else:
-            # Get the text inside the current element and cleanse the captured text
-            capturedText = []
-            for text in possibleText:
-
-                # If the current text is only brackets, it shouldn't be added to the captured text
-                if text.group() == "><":
-                    continue
-
-                # Remove brackets from text
-                capturedText.append(text.group(1))
-
-        return capturedText
+    # This function allows users to download files from the given URL. Takes the path to where
+    # the file should be saved and the URL to download from.
+    def download(self, URL, pathTo):
+        urllib.request.urlretrieve(URL, pathTo)
 
     # This function finds the given tag name in the page source with the given attributes.
     # Tag name is expected to be a string while attributes is expected to be a dict of
-    # signature str : str. Returns a list of element objects. Also takes a boolean indicating
-    # whether or not a tag is self closing. If not given selfClosing defaults to False and
-    # attributes defaults to an empty dict
+    # signature str : str. Returns a list of element objects. Also takes an optional source
+    # argument that is a string to parse tags from. If not given, source defaults to
+    # self.source.
     def get(self, tagName, **kwargs):
         # Default argument values
         attributes = {}
@@ -183,7 +102,15 @@ class TagCap:
                     continue
                     
             # Turn captured attributes into dict for easy access
-            capturedAttributes = self.__makeCapturedAttributesDict(tag)
+            capturedAttributes = {}
+            for unparsedAttribute in re.findall(GET_ATTRIBUTES_REGEX_SEARCH, tag.group()):
+                
+                # Remove any quotes in the attributes
+                unparsedAttribute = unparsedAttribute.replace("\"", "")
+
+                # Split current attribute at = and use the result to form the dict
+                splitAttribute = unparsedAttribute.split("=")
+                capturedAttributes[splitAttribute[0]] = splitAttribute[1]
 
             # Check for slash to indicate if the current tag is self-closing
             if re.findall(SELF_CLOSING_TAG_SEARCH, tag.group()):
@@ -196,11 +123,65 @@ class TagCap:
             # If the user indicates that the tag isn't self-closing, find the closing tag
             if selfClosing == False:
 
-                # Get HTML and inner HTML from current tag
-                capturedHTML, capturedInnerHTML = self.__getHTMLData(source, tag, tagName)
+                # Capture the inner HTML of the element by first getting the rest of the document after the current tag
+                remainingDocument = source[tag.start():]
+
+                # Create regex search string for finding opening and closing tags with a specific name
+                specificTagSearch = SPECIFIC_TAG_REGEX_TEMPLATE % tagName
+
+                # Keep track of the opening and closing tags
+                openingTagCount = 0
+                closingTagCount = 0
+
+                # Keep track of starting and ending index of closing tag in source
+                startOfClosingTag = 0
+                endOfClosingTag = 0
+
+                # Find each tag with the same name and iterate through them to find when the tags balance
+                for sameNameTag in re.finditer(specificTagSearch, remainingDocument):
+
+                    # If the current tag is an opening tag, increment opening tag count
+                    if sameNameTag.group().startswith("<" + tagName):
+                        openingTagCount += 1
+                    # If the current tag is a closing tag, increment closing tag count
+                    else:
+                        closingTagCount += 1
+
+                    # If opening and closing tags are balanced, the closing tag of the current tag has been found
+                    if openingTagCount == closingTagCount and openingTagCount != 0:
+        
+                        # Get the start and end index of the same name tag
+                        startOfClosingTag = tag.start() + sameNameTag.start()
+                        endOfClosingTag = tag.start() + sameNameTag.end()
+                        break
+
+                #TODO: place catch here if both startOfClosingTag and endOfClosingTag are 0
+
+                # Get the captured HTML (HTML inside tags AND the tags themselves)
+                capturedHTML = source[tag.start() : endOfClosingTag].strip()
+
+                # Get the captured inner HTML (HTML inside tags ONLY)
+                capturedInnerHTML = source[tag.end() : startOfClosingTag].strip()
                     
-                # Capture the text from this tag
-                capturedText = self.__getText(capturedInnerHTML)
+                # Get the text from the current tag
+                possibleText = re.finditer(TEXT_SEARCH, capturedInnerHTML)
+
+                # If no text found, innerHTML will be considered the text, since, in this case, the innerHTML IS the text
+                if sum(1 for _ in possibleText) == 0:
+                    capturedText = None
+
+                # If text is found with regex search, iterate through it
+                else:
+                    # Get the text inside the current element and cleanse the captured text
+                    capturedText = []
+                    for text in possibleText:
+
+                        # If the current text is only brackets, it shouldn't be added to the captured text
+                        if text.group() == "><":
+                            continue
+
+                        # Remove brackets from text
+                        capturedText.append(text.group(1))
 
                 # Add current element to elements list
                 elements.append(Element(tagName, capturedAttributes, capturedHTML, capturedInnerHTML, capturedText, selfClosing))
