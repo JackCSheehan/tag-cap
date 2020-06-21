@@ -8,16 +8,19 @@ from urllib.parse import urlparse
 from element import *
 
 # Regex search strings and search string templates
-TAG_WITH_ATTRIBUTES_REGEX_TEMPLATE = "<%s\\s+.*%s.*?>"                      # Regex template for searching for opening tag
-TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*>"                            # Regex templates for seraching for opening tags without attributes
-ATTRIBUTE_REGEX_TEMPLATE = "^(?=.*%s\\s*=\\s*\\\"%s\\\")"                        # Regex template for finding individual attributes
+TAG_WITH_ATTRIBUTES_REGEX_TEMPLATE = "<%s\\s+.*%s.*?>"                          # Regex template for searching for opening tag
+TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*>"                                # Regex templates for seraching for opening tags without attributes
+ATTRIBUTE_REGEX_TEMPLATE = "^(?=.*%s\\s*=\\s*\\\"%s\\\")"                       # Regex template for finding individual attributes
 GET_ATTRIBUTES_REGEX_SEARCH = "([a-zA-z0-9-]+\s*=\s*\"[a-zA-Z0-9-:.()_ ]*\")"   # Regex search string for collecting attributes from found tags 
-SPECIFIC_TAG_REGEX_TEMPLATE = "<[/]*%s.*>"                                  # Regex template for finding opening and closing tags of a specific name
-TEXT_SEARCH = ">.*?<"                                                       # Regex search string to get the text inside an element
+SPECIFIC_TAG_REGEX_TEMPLATE = "<[/]*%s.*>"                                      # Regex template for finding opening and closing tags of a specific name
+TEXT_SEARCH = ">.*?<"                                                           # Regex search string to get the text inside an element
+SELF_CLOSING_TAG_SEARCH = "/\s*>"                                               # Regex search to check for self-closing slash in tag
 
 # kwargs key names
-SELF_CLOSING_KWARG = "selfClosing"
 ATTRIBUTES_KWARG = "attributes"
+
+# HTML5 void tags (tags that self-close) given by the official w3 documentation. Ordered as best as possible most used -> least used for efficiency purposes
+HTML5_VOID_TAGS = ["meta", "img", "br", "input", "area", "base", "col", "command", "embed", "hr", "keygen", "link", "param", "source", "track", "wbr"]
 
 # Class that has all of the web scraping functionality
 class TagCap:
@@ -44,16 +47,13 @@ class TagCap:
     # attributes defaults to an empty dict
     def get(self, tagName, **kwargs):
         # Default argument values
-        selfClosing = False
         attributes = {}
 
         # Check for user-given values for the optional parameters
-        if SELF_CLOSING_KWARG in kwargs:
-            selfClosing = kwargs[SELF_CLOSING_KWARG]
-        
         if ATTRIBUTES_KWARG in kwargs:
             attributes = kwargs[ATTRIBUTES_KWARG]
 
+        selfClosing = False     # Flag that indicates whether or not element is self closing
         elements = []           # List of element objects read from source
         attributesRegex = ""    # Regex string to search for attributes
 
@@ -79,7 +79,7 @@ class TagCap:
             else:
 
                 # If the correct attributes are not found on this tag, skip the rest of the processing
-                if len(re.findall(attributesRegex, tag.group())) < 1:
+                if not re.findall(attributesRegex, tag.group()):
                     continue
                     
             # Turn captured attributes into dict for easy access
@@ -92,6 +92,14 @@ class TagCap:
                 # Split current attribute at = and use the result to form the dict
                 splitAttribute = unparsedAttribute.split("=")
                 capturedAttributes[splitAttribute[0]] = splitAttribute[1]
+
+            # Check for slash to indicate if the current tag is self-closing
+            if re.findall(SELF_CLOSING_TAG_SEARCH, tag.group()):
+                selfClosing = True
+
+            # Check to see if the given tag name is an HTML5 void tag
+            if any(voidTag in tagName for voidTag in HTML5_VOID_TAGS):
+                selfClosing = True
 
             # If the user indicates that the tag isn't self-closing, find the closing tag
             if selfClosing == False:
@@ -158,38 +166,6 @@ class TagCap:
             else:
                 # Add current element to elements list
                 elements.append(Element(tagName, capturedAttributes, tag.group(), None, None, selfClosing))
-
-
-        '''
-        # If the user didn't request any attributes, simple get all tags of the given name
-        if len(attributes) == 0:
-            
-            return
-
-        else:
-            # Find same-named tags with the correct attributes
-            for tag in openingTags:
-    
-                # MAYBE TODO: MAKE  the below attributes regex actually like...capture the attributes so we dont have to do it again?
-                # If the attributes search finds the correct attributes, then capture the rest of the data to put into an Element object
-                if len(re.findall(attributesRegex, tag)) >= 1:
-                    
-                    # Turn captured attributes into dict for easy access
-                    capturedAttributes = {}
-                    for unparsedAttribute in re.findall(GET_ATTRIBUTES_REGEX_SEARCH, tag):
-                        # Remove any quotes in the attributes
-                        unparsedAttribute = unparsedAttribute.replace("\"", "")
-
-                        # Split current attribute at = and use the result to form the dict
-                        splitAttribute = unparsedAttribute.split("=")
-                        capturedAttributes[splitAttribute[0]] = splitAttribute[1]
-
-
-                
-                else:
-                    continue
-                '''
-
 
         # Iterate through attributes dict to build regex
         return elements
