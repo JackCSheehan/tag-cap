@@ -2,7 +2,7 @@ import time
 
 start = time.time()
 from bs4 import BeautifulSoup
-f = open("trashedmap.osm")
+f = open("map.osm")
 soup = BeautifulSoup(f, "lxml")
 
 n = soup.find_all("node")

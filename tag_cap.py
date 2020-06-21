@@ -8,16 +8,16 @@ from urllib.parse import urlparse
 from element import *
 
 # Regex search strings and search string templates
-TAG_WITH_ATTRIBUTES_REGEX_TEMPLATE = "<%s\\s+.*%s.*?>"                          # Regex template for searching for opening tag
-TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*>"                                # Regex templates for seraching for opening tags without attributes
+TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*?>"                                # Regex templates for seraching for opening tags without attributes
 ATTRIBUTE_REGEX_TEMPLATE = "^(?=.*%s\\s*=\\s*\\\"%s\\\")"                       # Regex template for finding individual attributes
 GET_ATTRIBUTES_REGEX_SEARCH = "([a-zA-z0-9-]+\s*=\s*\"[a-zA-Z0-9-:.()_ ]*\")"   # Regex search string for collecting attributes from found tags 
-SPECIFIC_TAG_REGEX_TEMPLATE = "<[/]*%s.*>"                                      # Regex template for finding opening and closing tags of a specific name
+SPECIFIC_TAG_REGEX_TEMPLATE = "<[/]{0,1}%s.*?>"                                      # Regex template for finding opening and closing tags of a specific name
 TEXT_SEARCH = ">.*?<"                                                           # Regex search string to get the text inside an element
 SELF_CLOSING_TAG_SEARCH = "/\s*>"                                               # Regex search to check for self-closing slash in tag
 
 # kwargs key names
 ATTRIBUTES_KWARG = "attributes"
+SOURCE_KWARG = "source"
 
 # HTML5 void tags (tags that self-close) given by the official w3 documentation. Ordered as best as possible most used -> least used for efficiency purposes
 HTML5_VOID_TAGS = ["meta", "img", "br", "input", "area", "base", "col", "command", "embed", "hr", "keygen", "link", "param", "source", "track", "wbr"]
@@ -76,9 +76,9 @@ class TagCap:
         return capturedAttributes
 
     # Gets the HTML and inner HTML of the given tag.
-    def __getHTMLData(self, tag):
+    def __getHTMLData(self, source, tag, tagName):
         # Capture the inner HTML of the element by first getting the rest of the document after the current tag
-        remainingDocument = self.source[tag.start():]
+        remainingDocument = source[tag.start():]
 
         # Create regex search string for finding opening and closing tags with a specific name
         specificTagSearch = SPECIFIC_TAG_REGEX_TEMPLATE % tagName
@@ -91,8 +91,11 @@ class TagCap:
         startOfClosingTag = 0
         endOfClosingTag = 0
 
+        #print(re.findall(specificTagSearch, remainingDocument))
+
         # Find each tag with the same name and iterate through them to find when the tags balance
         for sameNameTag in re.finditer(specificTagSearch, remainingDocument):
+
             # If the current tag is an opening tag, increment opening tag count
             if sameNameTag.group().startswith("<" + tagName):
                 openingTagCount += 1
@@ -101,24 +104,27 @@ class TagCap:
                 closingTagCount += 1
 
             # If opening and closing tags are balanced, the closing tag of the current tag has been found
-            if (openingTagCount == closingTagCount) and openingTagCount != 0:
+            if openingTagCount == closingTagCount and openingTagCount != 0:
+ 
                 # Get the start and end index of the same name tag
                 startOfClosingTag = tag.start() + sameNameTag.start()
                 endOfClosingTag = tag.start() + sameNameTag.end()
                 break
-            
+
+        #TODO: place catch here if both startOfClosingTag and endOfClosingTag are 0
+
         # Get the captured HTML (HTML inside tags AND the tags themselves)
-        capturedHTML = self.source[tag.start() : endOfClosingTag].strip()
+        capturedHTML = source[tag.start() : endOfClosingTag].strip()
 
         # Get the captured inner HTML (HTML inside tags ONLY)
-        capturedInnerHTML = self.source[tag.end() : startOfClosingTag].strip()
+        capturedInnerHTML = source[tag.end() : startOfClosingTag].strip()
 
         return capturedHTML, capturedInnerHTML
 
     # Gets the text inside the current tag and returns it.
     def __getText(self, capturedInnerHTML):
         # Get data from inner HTML that might be text
-        possibleText = re.finditer(TEXT_SEARCH, capturedInnerHTML, re.MULTILINE)
+        possibleText = re.finditer(TEXT_SEARCH, capturedInnerHTML)
 
         # If no text found, innerHTML will be considered the text, since, in this case, the innerHTML IS the text
         if sum(1 for _ in possibleText) == 0:
@@ -147,10 +153,14 @@ class TagCap:
     def get(self, tagName, **kwargs):
         # Default argument values
         attributes = {}
+        source = self.source
 
         # Check for user-given values for the optional parameters
         if ATTRIBUTES_KWARG in kwargs:
             attributes = kwargs[ATTRIBUTES_KWARG]
+
+        if SOURCE_KWARG in kwargs:
+            source = kwargs[SOURCE_KWARG]
 
         selfClosing = False     # Flag that indicates whether or not element is self closing
         elements = []           # List of element objects read from source
@@ -159,7 +169,7 @@ class TagCap:
         attributesRegex = self.__makeAttributesRegex(attributes)
 
         # Find all tags that have the same name as the given tag name
-        for tag in re.finditer(TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE % tagName, self.source):
+        for tag in re.finditer(TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE % tagName, source):
 
             # If the user gave no attributes, function doesn't have to search for specific attributes
             if len(attributes) == 0:
@@ -186,9 +196,11 @@ class TagCap:
             # If the user indicates that the tag isn't self-closing, find the closing tag
             if selfClosing == False:
 
-                capturedHTML, captiredInnerHTML = self.__getHTMLData(tag)
+                # Get HTML and inner HTML from current tag
+                capturedHTML, capturedInnerHTML = self.__getHTMLData(source, tag, tagName)
                     
-                capturedText = self.__getText(captiredInnerHTML)
+                # Capture the text from this tag
+                capturedText = self.__getText(capturedInnerHTML)
 
                 # Add current element to elements list
                 elements.append(Element(tagName, capturedAttributes, capturedHTML, capturedInnerHTML, capturedText, selfClosing))
