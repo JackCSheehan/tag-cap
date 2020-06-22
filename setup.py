@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="tagcap",
-    version="0.1.3",
+    version="0.1.4",
     author="Jack Sheehan",
     description="A simple and efficient HTML/XML parsing library written in pure Python",
     long_description=long_description,
