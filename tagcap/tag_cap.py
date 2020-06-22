@@ -1,11 +1,9 @@
-# useful RE: <h1\s+.*(class\s*=\s*\"headers\"\s*)\s*(id\s*=\s*\"Main Header\"\s*).*>.*<\/h1>
-# <span\s+.*(?=class\s*=\s*\"note\"\s*).*?>
-# <div\s+.*(?=.*class\s*=\s*\"mw-body-content\").*(?=.*id\s*=\s*\"siteNotice\").*?>
-# <[/]*node.*>
 import re
 import urllib.request
 from urllib.parse import urlparse
-from element import *
+from tagcap.element import *
+
+Element()
 
 # Regex search strings and search string templates
 _TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*?>"                                # Regex templates for seraching for opening tags without attributes
@@ -169,7 +167,7 @@ class TagCap:
 
                 # If no text found, innerHTML will be considered the text, since, in this case, the innerHTML IS the text
                 if sum(1 for _ in possibleText) == 0:
-                    capturedText = None
+                    capturedText = capturedInnerHTML
 
                 # If text is found with regex search, iterate through it
                 else:
