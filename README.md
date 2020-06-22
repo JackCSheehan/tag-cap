@@ -18,5 +18,4 @@ Tag cap can be used to either parse XML/HTML
 - Built-in support for parsing local files or webpages directly
 
 ### Links
-- PyPi page
 - [Wiki](https://github.com/JackCSheehan/tag-cap/wiki)
