@@ -3,8 +3,6 @@ import urllib.request
 from urllib.parse import urlparse
 from tagcap.element import *
 
-Element()
-
 # Regex search strings and search string templates
 _TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*?>"                                # Regex templates for seraching for opening tags without attributes
 _ATTRIBUTE_REGEX_TEMPLATE = "^(?=.*%s\\s*=\\s*\\\"%s\\\")"                       # Regex template for finding individual attributes
