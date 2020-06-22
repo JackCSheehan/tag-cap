@@ -13,6 +13,11 @@ setuptools.setup(
     url="https://github.com/JackCSheehan/tag-cap",
     packages=setuptools.find_packages(),
     classifiers=[
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: Text Processing :: Markup :: HTML",
+        "Topic :: Text Processing :: Markup :: XML",
+        "Intended Audience :: Developers",
+        "Development Status :: 4 - Beta",
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
