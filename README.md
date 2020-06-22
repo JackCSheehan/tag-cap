@@ -8,15 +8,15 @@ $ pip install tag-cap
 ```
 
 ### Documentation
-Check out the official (work in progress) wiki for information on how to use Tag Cap. 
+Check out the [wiki](https://github.com/JackCSheehan/tag-cap/wiki) (work in progress) for information on how to use Tag Cap. 
 
 ### Why Use Tag Cap?
 Tag cap can be used to either parse XML/HTML
 - Simple and straightforward syntax
 - Efficient random and bulk access to XML and HTML elements (even faster than BeautifulSoup!)
+- No external dependencies
 - Built-in support for parsing local files or webpages directly
-- Free and open source code licensed under the MIT license
 
 ### Links
 - PyPi page
-- Wiki
+- [Wiki](https://github.com/JackCSheehan/tag-cap/wiki)
