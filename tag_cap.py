@@ -22,8 +22,9 @@ _SOURCE_KWARG = "source"
 # HTML5 void tags (tags that self-close) given by the official w3 documentation. Ordered as best as possible most used -> least used for efficiency purposes
 _HTML5_VOID_TAGS = ["meta", "img", "br", "input", "area", "base", "col", "command", "embed", "hr", "keygen", "link", "param", "source", "track", "wbr"]
 
-# Class that has all of the web scraping functionality
+# Class that has all of the parsing functionality
 class TagCap:
+    
     # Takes an HTML or XML source in the form of either a URL or a file path
     def __init__(self, dataLocation):
         self.dataLocation = dataLocation
