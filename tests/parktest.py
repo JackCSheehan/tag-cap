@@ -16,7 +16,7 @@ print("%s seconds" % (time.time() - start))
 start = time.time()
 from bs4 import BeautifulSoup
 
-soup = BeautifulSoup(open("park.osm", encoding = "utf8"), "html.parser")
+soup = BeautifulSoup(open("park.osm", encoding = "utf8"), "lxml")
 
-soup.find_all("node")
+n = soup.find_all("node")
 print("%s seconds" % (time.time() - start))
