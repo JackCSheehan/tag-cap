@@ -4,12 +4,12 @@ from urllib.parse import urlparse
 from tagcap.element import *
 
 # Regex search strings and search string templates
-_TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*?>"                                # Regex templates for seraching for opening tags without attributes
-_ATTRIBUTE_REGEX_TEMPLATE = "^(?=.*%s\\s*=\\s*\\\"%s\\\")"                       # Regex template for finding individual attributes
-_GET_ATTRIBUTES_REGEX_SEARCH = "([a-zA-z0-9-]+\s*=\s*\"[a-zA-Z0-9-:.()_ ]*\")"   # Regex search string for collecting attributes from found tags 
-_SPECIFIC_TAG_REGEX_TEMPLATE = "<[/]{0,1}%s.*?>"                                      # Regex template for finding opening and closing tags of a specific name
-_TEXT_SEARCH = ">.*?<"                                                           # Regex search string to get the text inside an element
-_SELF_CLOSING_TAG_SEARCH = "/\s*>"                                               # Regex search to check for self-closing slash in tag
+_TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*?>"                              # Regex templates for seraching for opening tags without attributes
+_ATTRIBUTE_REGEX_TEMPLATE = "^(?=.*%s\\s*=\\s*\\\"%s\\\")"                      # Regex template for finding individual attributes
+_GET_ATTRIBUTES_REGEX_SEARCH = "([a-zA-z0-9-]+\s*=\s*\"[a-zA-Z0-9-:.()_ ]*\")"  # Regex search string for collecting attributes from found tags 
+_SPECIFIC_TAG_REGEX_TEMPLATE = "<[/]{0,1}%s.*?>"                                # Regex template for finding opening and closing tags of a specific name
+_TEXT_SEARCH = ">.*?<"                                                          # Regex search string to get the text inside an element
+_SELF_CLOSING_TAG_SEARCH = "/\s*>"                                              # Regex search to check for self-closing slash in tag
 
 # kwargs key names
 _ATTRIBUTES_KWARG = "attributes"
@@ -34,7 +34,7 @@ class TagCap:
             
         # If data location is a file, open the file and read its contents into self.source
         else:
-            file = open(dataLocation, "r")
+            file = open(dataLocation, "r", encoding = "utf8")
             self.source = file.read()
             file.close()
 

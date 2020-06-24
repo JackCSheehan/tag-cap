@@ -4,7 +4,7 @@ A simple and efficient HTML/XML parsing library written in pure Python.
 ### Installation
 Tag Cap can be installed directly from pip using:
 ```
-$ pip install tag-cap
+$ pip install tagcap
 ```
 
 ### Documentation
