@@ -13,7 +13,7 @@ Check out the [wiki](https://github.com/JackCSheehan/tag-cap/wiki) (work in prog
 ### Why Use Tag Cap?
 Tag cap can be used to either parse XML/HTML
 - Simple and straightforward syntax
-- Efficient random and bulk access to XML and HTML elements (even faster than BeautifulSoup!)
+- Efficient random and bulk access to XML and HTML elements
 - No external dependencies
 - Built-in support for parsing local files or webpages directly
 
