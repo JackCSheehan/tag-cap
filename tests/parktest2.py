@@ -7,7 +7,7 @@ import tagcap
 
 t = tagcap.TagCap("park.osm")
 
-n = t.get("node")
+n = t.get("relation", attributes = {"id" : "11212767", "changeset" : "86790695"})
 print("%s seconds" % (time.time() - start))
 
 # Start of BS4 Test
@@ -16,5 +16,5 @@ from bs4 import BeautifulSoup
 
 soup = BeautifulSoup(open("park.osm", encoding = "utf8"), "lxml")
 
-n = soup.find_all("node")
+n = soup.find_all("node", {"id" : "11212767", "changeset" : "86790695"})
 print("%s seconds" % (time.time() - start))
