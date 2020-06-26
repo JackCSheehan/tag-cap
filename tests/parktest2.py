@@ -4,7 +4,6 @@ import time
 # Start of TagCap test
 start = time.time()
 import tagcap
-
 t = tagcap.TagCap("park.osm")
 
 n = t.get("relation", attributes = {"id" : "11212767", "changeset" : "86790695"})
@@ -16,5 +15,5 @@ from bs4 import BeautifulSoup
 
 soup = BeautifulSoup(open("park.osm", encoding = "utf8"), "lxml")
 
-n = soup.find_all("node", {"id" : "11212767", "changeset" : "86790695"})
+n = soup.find("relation", {"id" : "11212767", "changeset" : "86790695"})
 print("%s seconds" % (time.time() - start))

@@ -1,5 +1,5 @@
 # Tag Cap
-A simple and efficient HTML/XML parsing library written in pure Python.
+A simple and efficient Python library for webscraping and HTML/XML parsing.
 
 ### Installation
 Tag Cap can be installed directly from pip using:
