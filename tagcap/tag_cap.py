@@ -8,7 +8,7 @@ _TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*?>"                              
 _ATTRIBUTE_REGEX_TEMPLATE = "^(?=.*%s\\s*=\\s*\\\"%s\\\")"                      # Regex template for finding individual attributes
 _GET_ATTRIBUTES_REGEX_SEARCH = "([a-zA-z0-9-]+\s*=\s*\"[a-zA-Z0-9-:.()_ ]*\")"  # Regex search string for collecting attributes from found tags 
 _SPECIFIC_TAG_REGEX_TEMPLATE = "<[/]{0,1}%s.*?>"                                # Regex template for finding opening and closing tags of a specific name
-_TEXT_SEARCH = ">.*?<"                                                          # Regex search string to get the text inside an element
+_TEXT_SEARCH = ">\s*(.*?)\s*<"                                                          # Regex search string to get the text inside an element
 _SELF_CLOSING_TAG_SEARCH = "/\s*>"                                              # Regex search to check for self-closing slash in tag
 
 # kwargs key names
@@ -161,11 +161,11 @@ class TagCap:
                 capturedInnerHTML = source[tag.end() : startOfClosingTag].strip()
                     
                 # Get the text from the current tag
-                possibleText = re.finditer(_TEXT_SEARCH, capturedInnerHTML)
+                possibleText = re.findall(_TEXT_SEARCH, capturedInnerHTML)
 
                 # If no text found, innerHTML will be considered the text, since, in this case, the innerHTML IS the text
-                if sum(1 for _ in possibleText) == 0:
-                    capturedText = capturedInnerHTML
+                if len(possibleText) == 1:
+                    capturedText = [capturedInnerHTML]
 
                 # If text is found with regex search, iterate through it
                 else:
@@ -173,12 +173,12 @@ class TagCap:
                     capturedText = []
                     for text in possibleText:
 
-                        # If the current text is only brackets, it shouldn't be added to the captured text
-                        if text.group() == "><":
+                        # If the current text is only whitespace, it shouldn't be added to the captured text
+                        if text.isspace() or len(text) == 0:
                             continue
 
-                        # Remove brackets from text
-                        capturedText.append(text.group(1))
+                        # Add cleansed text to capturedText list
+                        capturedText.append(text)
 
                 # Add current element to elements list
                 elements.append(Element(tagName, capturedAttributes, capturedHTML, capturedInnerHTML, capturedText, selfClosing))
@@ -187,5 +187,5 @@ class TagCap:
                 # Add current element to elements list
                 elements.append(Element(tagName, capturedAttributes, tag.group(), None, None, selfClosing))
 
-        # Iterate through attributes dict to build regex
+        # Return list of elements generated
         return elements
