@@ -2,15 +2,17 @@ import re
 import urllib.request
 from urllib.parse import urlparse
 from tagcap.element import *
-# ((?<=>)\b.*?\b(?=<)) <= new text capture can remove the text loop
-# <div\s*(?=.*(id)\s*=\s*\"(test-id)\")*\s*(?=.*(class)\s*=\s*\"(test class)\")*.*> <= can remove need for if (findall(attributes in current tag if-statement))
+# (?<=>).*?(?=<) <= new text capture can remove the text loop
+# <div.*?(?=.*(id)\s*=\s*\"(test-id)\").*?(?=.*(class)\s*=\s*\"(test class)\").*> <= can remove need for if (findall(attributes in current tag if-statement))
 # Regex search strings and search string templates
 _TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE = "<%s.*?>"                              # Regex templates for seraching for opening tags without attributes
-_ATTRIBUTE_REGEX_TEMPLATE = "^(?=.*%s\\s*=\\s*\\\"%s\\\")"                      # Regex template for finding individual attributes
+_ATTRIBUTE_REGEX_TEMPLATE = "(?=.*(%s)\\s*=\\s*\\\"(%s)\\\")"                      # Regex template for finding individual attributes
 _GET_ATTRIBUTES_REGEX_SEARCH = "([a-zA-z0-9-]+\s*=\s*\"[a-zA-Z0-9-:.()_ ]*\")"  # Regex search string for collecting attributes from found tags 
 _SPECIFIC_TAG_REGEX_TEMPLATE = "<[/]{0,1}%s.*?>"                                # Regex template for finding opening and closing tags of a specific name
-_TEXT_SEARCH = ">\\s*(.*?)\\s*<"                                                          # Regex search string to get the text inside an element
+_TEXT_SEARCH = "(?<=>)(.*?)(?=<)"                                                          # Regex search string to get the text inside an element
 _SELF_CLOSING_TAG_SEARCH = "/\\s*>"                                              # Regex search to check for self-closing slash in tag
+
+_TAG_SEARCH_REGEX = "<%s.*?%s.*?>"
 
 # kwargs key names
 _ATTRIBUTES_KWARG = "attributes"
@@ -53,7 +55,7 @@ class TagCap:
 
             # If this is not the last attribute, add a .* so that attributes in between target attributes don't interrupt search
             if count != len(attributes) - 1:
-                attributesRegex += ".*"
+                attributesRegex += ".*?"
         
         return attributesRegex
 
@@ -84,31 +86,16 @@ class TagCap:
         
         # Create the attributes regex from the given attributes
         attributesRegex = self.__makeAttributesRegex(attributes)
-
+        
         # Find all tags that have the same name as the given tag name
-        for tag in re.finditer(_TAG_WITHOUT_ATTRIBUTES_REGEX_TEMPLATE % tagName, source):
-
-            # If the user gave no attributes, function doesn't have to search for specific attributes
-            if len(attributes) == 0:
-                capturedHTML = tag.group()
-
-            # If the user gave attributes, check for attributes
-            else:
-
-                # If the correct attributes are not found on this tag, skip the rest of the processing
-                if not re.findall(attributesRegex, tag.group()):
-                    continue
+        for tag in re.finditer(_TAG_SEARCH_REGEX % (tagName, attributesRegex), source):
                     
             # Turn captured attributes into dict for easy access
             capturedAttributes = {}
-            for unparsedAttribute in re.findall(_GET_ATTRIBUTES_REGEX_SEARCH, tag.group()):
-                
-                # Remove any quotes in the attributes
-                unparsedAttribute = unparsedAttribute.replace("\"", "")
-
-                # Split current attribute at = and use the result to form the dict
-                splitAttribute = unparsedAttribute.split("=")
-                capturedAttributes[splitAttribute[0]] = splitAttribute[1]
+            attributeCounter = 1
+            while attributeCounter < len(tag.groups()):
+                capturedAttributes[tag.group(attributeCounter)] = tag.group(attributeCounter + 1)
+                attributeCounter += 2
 
             # Check for slash to indicate if the current tag is self-closing
             if re.findall(_SELF_CLOSING_TAG_SEARCH, tag.group()):
@@ -162,24 +149,11 @@ class TagCap:
                 capturedInnerHTML = source[tag.end() : startOfClosingTag].strip()
                     
                 # Get the text from the current tag
-                possibleText = re.findall(_TEXT_SEARCH, capturedInnerHTML)
+                capturedText = re.findall(_TEXT_SEARCH, capturedInnerHTML)
 
                 # If no text found, innerHTML will be considered the text, since, in this case, the innerHTML IS the text
-                if len(possibleText) == 1:
+                if len(capturedText) == 1:
                     capturedText = [capturedInnerHTML]
-
-                # If text is found with regex search, iterate through it
-                else:
-                    # Get the text inside the current element and cleanse the captured text
-                    capturedText = []
-                    for text in possibleText:
-
-                        # If the current text is only whitespace, it shouldn't be added to the captured text
-                        if text.isspace() or len(text) == 0:
-                            continue
-
-                        # Add cleansed text to capturedText list
-                        capturedText.append(text)
 
                 # Add current element to elements list
                 elements.append(Element(tagName, capturedAttributes, capturedHTML, capturedInnerHTML, capturedText, selfClosing))
